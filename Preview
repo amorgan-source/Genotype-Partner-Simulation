@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>For the Birds Virtual Collision Simulation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f4f6f8;
+      color: #222;
+    }
+
+    h1, h2, h3 {
+      margin-bottom: 8px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+    }
+
+    .card {
+      background: white;
+      padding: 18px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      margin-bottom: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 8px;
+      border: 1px solid #bbb;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    button {
+      background: #2457a6;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 14px;
+    }
+
+    button:hover {
+      background: #1b427d;
+    }
+
+    .secondary {
+      background: #5f6b7a;
+    }
+
+    .secondary:hover {
+      background: #444e5a;
+    }
+
+    .danger {
+      background: #a83a32;
+    }
+
+    .danger:hover {
+      background: #7f2b25;
+    }
+
+    .results {
+      font-size: 1.05rem;
+      line-height: 1.5;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      background: #e9eef7;
+    }
+
+    .simulation-box {
+      height: 360px;
+      position: relative;
+      background: linear-gradient(#dcecff, #ffffff);
+      border: 2px solid #aaa;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .floor {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 28px;
+      background: #999;
+      color: white;
+      text-align: center;
+      font-size: 0.85rem;
+      line-height: 28px;
+    }
+
+    .screen {
+      position: absolute;
+      left: 20%;
+      width: 60%;
+      height: 8px;
+      background: repeating-linear-gradient(
+        90deg,
+        rgba(36,87,166,0.8),
+        rgba(36,87,166,0.8) 5px,
+        rgba(255,255,255,0.8) 5px,
+        rgba(255,255,255,0.8) 10px
+      );
+      border: 1px solid #2457a6;
+    }
+
+    .bird {
+      position: absolute;
+      left: calc(50% - 18px);
+      top: 22px;
+      width: 36px;
+      height: 36px;
+      background: #ffcf66;
+      border-radius: 50%;
+      border: 2px solid #a56c00;
+      transition: top 0.7s ease-in;
+    }
+
+    .bird.flattened {
+      height: 18px;
+      border-radius: 50% / 40%;
+      background: #f0b84e;
+    }
+
+    .caption {
+      color: #555;
+      font-size: 0.95rem;
+    }
+
+    .pill {
+      display: inline-block;
+      background: #eef2f7;
+      border-radius: 999px;
+      padding: 6px 10px;
+      margin: 4px 4px 4px 0;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>For the Birds Virtual Collision Simulation</h1>
+      <p>
+        Use this model to test how changing the distance between a flexible screen and a window affects bird-window collision damage.
+        In this simulation, deformation means the model bird was damaged. No deformation means the solution prevented mortality in the model.
+      </p>
+      <p class="caption">
+        Classroom note: This is a simplified model. It is designed to help students identify trends, compare variables, and practice using evidence.
+      </p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>1. Choose or Enter Bird Data</h2>
+        <label for="birdSelect">Bird Type</label>
+        <select id="birdSelect" onchange="loadBird()">
+          <option value="Chickadee">Chickadee</option>
+          <option value="Gray Catbird">Gray Catbird</option>
+          <option value="Nuthatch">Nuthatch</option>
+          <option value="Ruby-crowned Kinglet">Ruby-crowned Kinglet</option>
+          <option value="Eastern Bluebird">Eastern Bluebird</option>
+          <option value="Custom">Custom Bird</option>
+        </select>
+
+        <label for="mass">Mass of Bird Model (g)</label>
+        <input id="mass" type="number" step="0.1" value="12" />
+
+        <label for="height">Simulation Drop Height (m)</label>
+        <input id="height" type="number" step="0.1" value="1.5" />
+
+        <label for="distance">Distance Between Screen and Window/Floor (cm)</label>
+        <input id="distance" type="number" step="0.5" value="5" />
+
+        <label for="trials">Number of Trials</label>
+        <input id="trials" type="number" min="1" max="10" value="3" />
+
+        <button onclick="runTrials()">Run Trials</button>
+        <button class="secondary" onclick="addPresetDistances()">Auto-Test Several Distances</button>
+        <button class="danger" onclick="clearTable()">Clear Data Table</button>
+      </div>
+
+      <div class="card">
+        <h2>2. Simulation View</h2>
+        <div class="simulation-box" id="simBox">
+          <div class="bird" id="bird"></div>
+          <div class="screen" id="screen"></div>
+          <div class="floor">Window / Floor Impact Surface</div>
+        </div>
+        <p class="caption">The screen distance shown is a visual model, not an exact scale drawing.</p>
+      </div>
+    </div>
+
+    <div class="card results">
+      <h2>3. Current Trial Results</h2>
+      <div id="resultText">Choose a bird, enter a screen distance, and run trials.</div>
+    </div>
+
+    <div class="card">
+      <h2>4. Data Table</h2>
+      <p class="caption">Copy this table into your answer packet or use it to identify the minimum screen distance that prevents deformation.</p>
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th>Bird</th>
+            <th>Mass (g)</th>
+            <th>Drop Height (m)</th>
+            <th>Screen Distance (cm)</th>
+            <th>Trial Results: Deformation (cm)</th>
+            <th>Average Deformation (cm)</th>
+            <th>Mortality Prevented?</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>5. Student Reflection Questions</h2>
+      <p><span class="pill">Trend</span> What happened to deformation as screen distance increased?</p>
+      <p><span class="pill">Minimum Value</span> What was the smallest screen distance that resulted in 0.0 cm deformation?</p>
+      <p><span class="pill">Variables</span> What was the independent variable? What was the dependent variable?</p>
+      <p><span class="pill">Evidence</span> Use numbers from your data table to support your answer.</p>
+      <p><span class="pill">Model Limits</span> Why might this virtual model not perfectly match real bird-window collisions?</p>
+    </div>
+  </div>
+
+  <script>
+    const birds = {
+      "Chickadee": { mass: 12, height: 1.5 },
+      "Gray Catbird": { mass: 34, height: 1.5 },
+      "Nuthatch": { mass: 20, height: 1.6 },
+      "Ruby-crowned Kinglet": { mass: 7, height: 2.6 },
+      "Eastern Bluebird": { mass: 30, height: 2.9 },
+      "Custom": { mass: 12, height: 1.5 }
+    };
+
+    function loadBird() {
+      const bird = document.getElementById("birdSelect").value;
+      if (bird !== "Custom") {
+        document.getElementById("mass").value = birds[bird].mass;
+        document.getElementById("height").value = birds[bird].height;
+      }
+      updateVisual();
+    }
+
+    function calculateDeformation(mass, height, distance) {
+      // Simplified classroom model:
+      // More mass and more drop height increase deformation.
+      // More screen distance decreases deformation.
+      // This version is tuned to better match the class example data:
+      // Chickadee around 5 cm, Gray Catbird/Ruby-crowned Kinglet around 6 cm,
+      // and Eastern Bluebird around 9 cm for no deformation.
+
+      let safeDistance;
+
+      if (mass <= 8 && height >= 2.5) {
+        // Ruby-crowned Kinglet: light, but fast because of higher drop height
+        safeDistance = 6;
+      } else if (mass >= 29 && height >= 2.7) {
+        // Eastern Bluebird: heavier and fastest of the class examples
+        safeDistance = 9;
+      } else if (mass >= 30 && height <= 1.6) {
+        // Gray Catbird: heavy, but lower drop height
+        safeDistance = 6;
+      } else if (mass <= 14 && height <= 1.6) {
+        // Chickadee: small bird, lower drop height
+        safeDistance = 5;
+      } else {
+        // General rule for custom birds
+        safeDistance = Math.ceil((mass * height) / 9);
+        if (safeDistance < 4) safeDistance = 4;
+        if (safeDistance > 10) safeDistance = 10;
+      }
+
+      if (distance >= safeDistance) {
+        return 0;
+      }
+
+      // The farther below the safe distance, the more deformation occurs.
+      const gap = safeDistance - distance;
+      let deformation = gap * 0.55;
+
+      // Add small trial-to-trial variation so data feels realistic.
+      const variation = (Math.random() * 0.24) - 0.12;
+      deformation += variation;
+
+      if (deformation < 0.05) deformation = 0;
+      return Number(deformation.toFixed(1));
+    }
+
+    function runTrials() {
+      const birdName = document.getElementById("birdSelect").value;
+      const mass = Number(document.getElementById("mass").value);
+      const height = Number(document.getElementById("height").value);
+      const distance = Number(document.getElementById("distance").value);
+      const trials = Number(document.getElementById("trials").value);
+
+      const results = [];
+      for (let i = 0; i < trials; i++) {
+        results.push(calculateDeformation(mass, height, distance));
+      }
+
+      const average = results.reduce((sum, val) => sum + val, 0) / results.length;
+      const roundedAverage = Number(average.toFixed(1));
+      const prevented = results.every(value => value === 0) ? "Yes" : "No";
+
+      animateBird(results.some(value => value > 0));
+      addRow(birdName, mass, height, distance, results, roundedAverage, prevented);
+
+      document.getElementById("resultText").innerHTML = `
+        <strong>${birdName}</strong><br>
+        Mass: ${mass} g<br>
+        Drop height: ${height} m<br>
+        Screen distance: ${distance} cm<br>
+        Trial deformation values: ${results.join(", ")} cm<br>
+        Average deformation: <strong>${roundedAverage} cm</strong><br>
+        Mortality prevented in the model? <strong>${prevented}</strong>
+      `;
+    }
+
+    function addPresetDistances() {
+      const distances = [3, 4, 5, 6, 7, 8, 9];
+      const originalDistance = document.getElementById("distance").value;
+      distances.forEach(d => {
+        document.getElementById("distance").value = d;
+        runTrials();
+      });
+      document.getElementById("distance").value = originalDistance;
+    }
+
+    function addRow(birdName, mass, height, distance, results, average, prevented) {
+      const tbody = document.querySelector("#dataTable tbody");
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${birdName}</td>
+        <td>${mass}</td>
+        <td>${height}</td>
+        <td>${distance}</td>
+        <td>${results.join(", ")}</td>
+        <td>${average}</td>
+        <td>${prevented}</td>
+      `;
+      tbody.appendChild(row);
+    }
+
+    function clearTable() {
+      document.querySelector("#dataTable tbody").innerHTML = "";
+      document.getElementById("resultText").textContent = "Data table cleared. Run a new set of trials.";
+    }
+
+    function animateBird(flattened) {
+      const bird = document.getElementById("bird");
+
+      // Fully reset the bird before every new drop.
+      bird.style.transition = "none";
+      bird.classList.remove("flattened");
+      bird.style.top = "22px";
+
+      // Force the browser to register the reset before starting the fall.
+      bird.offsetHeight;
+
+      setTimeout(() => {
+        bird.style.transition = "top 0.7s ease-in";
+        bird.style.top = "285px";
+      }, 60);
+
+      setTimeout(() => {
+        if (flattened) bird.classList.add("flattened");
+      }, 820);
+    }
+
+    function updateVisual() {
+      const distance = Number(document.getElementById("distance").value);
+      const screen = document.getElementById("screen");
+      const bird = document.getElementById("bird");
+      const bottom = 28 + Math.min(distance * 18, 230);
+      screen.style.bottom = bottom + "px";
+
+      // When students change the screen distance, reset the bird to the top
+      // so the next Run Trials click clearly starts a new simulation.
+      bird.style.transition = "none";
+      bird.classList.remove("flattened");
+      bird.style.top = "22px";
+    }
+
+    document.getElementById("distance").addEventListener("input", updateVisual);
+    loadBird();
+    updateVisual();
+  </script>
+</body>
+</html>
